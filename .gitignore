@@ -1,0 +1,13 @@
+# Simulation and generated files
+obj_dir/
+sim/
+waves/
+
+# Waveform files
+*.vcd
+*.fst
+
+# Editor and OS files
+.vscode/
+*.swp
+*~
