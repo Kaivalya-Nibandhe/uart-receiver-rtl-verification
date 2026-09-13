@@ -14,17 +14,21 @@
 //
 // CLKS_PER_BIT defines the number of system-clock cycles
 // corresponding to one UART bit period.
+//
+// framing_error is asserted for one clock cycle when the
+// received stop bit is LOW instead of HIGH.
 //============================================================
 
 module uart_rx #(
     parameter CLKS_PER_BIT = 217
 ) (
-    input  clk,
-    input  rst,
-    input  rx,
+    input clk,
+    input rst,
+    input rx,
 
     output rx_valid,
-    output [7:0] rx_data
+    output [7:0] rx_data,
+    output framing_error
 );
 
     //========================================================
@@ -54,6 +58,9 @@ module uart_rx #(
     // Internal registered version of rx_valid.
     reg rx_valid_reg;
 
+    // Internal registered version of framing_error.
+    reg framing_error_reg;
+
     // Current FSM state.
     reg [2:0] state;
 
@@ -67,11 +74,12 @@ module uart_rx #(
         if (rst) begin
 
             // Reset all internal registers.
-            baud_cnt     <= 8'd0;
-            bit_cnt      <= 3'd0;
-            rx_shift_reg <= 8'd0;
-            rx_valid_reg <= 1'b0;
-            state        <= STATE_IDLE;
+            baud_cnt        <= 8'd0;
+            bit_cnt         <= 3'd0;
+            rx_shift_reg    <= 8'd0;
+            rx_valid_reg    <= 1'b0;
+            framing_error_reg <= 1'b0;
+            state           <= STATE_IDLE;
 
         end
         else begin
@@ -87,9 +95,12 @@ module uart_rx #(
 
                 STATE_IDLE: begin
 
-                    rx_valid_reg <= 1'b0;
-                    baud_cnt     <= 8'd0;
-                    bit_cnt      <= 3'd0;
+                    // Output flags are inactive by default.
+                    rx_valid_reg      <= 1'b0;
+                    framing_error_reg <= 1'b0;
+
+                    baud_cnt <= 8'd0;
+                    bit_cnt  <= 3'd0;
 
                     if (rx == 1'b0) begin
                         state <= STATE_START;
@@ -187,8 +198,8 @@ module uart_rx #(
                 //
                 // The stop bit must be HIGH.
                 //
-                // If the stop bit is invalid, rx_valid remains
-                // LOW and the received frame is rejected.
+                // If the stop bit is LOW, framing_error is
+                // asserted for one clock cycle.
                 //================================================
 
                 STATE_STOP: begin
@@ -206,13 +217,15 @@ module uart_rx #(
                         if (rx == 1'b1) begin
 
                             // Valid stop bit.
-                            rx_valid_reg <= 1'b1;
+                            rx_valid_reg      <= 1'b1;
+                            framing_error_reg <= 1'b0;
 
                         end
                         else begin
 
                             // Invalid stop bit.
-                            rx_valid_reg <= 1'b0;
+                            rx_valid_reg      <= 1'b0;
+                            framing_error_reg <= 1'b1;
 
                         end
 
@@ -226,13 +239,15 @@ module uart_rx #(
                 //================================================
                 // CLEANUP STATE
                 //
-                // Deassert rx_valid and return to the idle state.
+                // Deassert rx_valid and framing_error, then
+                // return to the idle state.
                 //================================================
 
                 STATE_CLEANUP: begin
 
-                    rx_valid_reg <= 1'b0;
-                    state        <= STATE_IDLE;
+                    rx_valid_reg      <= 1'b0;
+                    framing_error_reg <= 1'b0;
+                    state             <= STATE_IDLE;
 
                 end
 
@@ -245,7 +260,11 @@ module uart_rx #(
 
                 default: begin
 
-                    state <= STATE_IDLE;
+                    state             <= STATE_IDLE;
+                    rx_valid_reg      <= 1'b0;
+                    framing_error_reg <= 1'b0;
+                    baud_cnt          <= 8'd0;
+                    bit_cnt           <= 3'd0;
 
                 end
 
@@ -260,7 +279,8 @@ module uart_rx #(
     // Output assignments
     //============================================================
 
-    assign rx_valid = rx_valid_reg;
-    assign rx_data  = rx_shift_reg;
+    assign rx_valid      = rx_valid_reg;
+    assign rx_data       = rx_shift_reg;
+    assign framing_error = framing_error_reg;
 
 endmodule

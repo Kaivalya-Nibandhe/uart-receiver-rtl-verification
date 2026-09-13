@@ -1,38 +1,158 @@
 # UART Receiver RTL Design & Functional Verification
 
-A Verilog/SystemVerilog-based implementation and verification of an 8-bit UART receiver using FSM-based protocol control, configurable baud-rate timing, and a structured self-checking testbench.
+## Overview
 
-## Project Overview
+This project implements and verifies an **8-bit UART receiver** using Verilog RTL and a structured SystemVerilog verification environment.
 
-This project implements an asynchronous UART receiver at the RTL level and verifies its functionality through simulation. The design receives serial data, detects the start bit, samples the incoming data, checks the stop bit, and produces a parallel 8-bit output.
+The UART receiver supports the standard **8N1 UART configuration**:
 
-The verification environment includes stimulus generation, monitoring, result checking, protocol assertions, and functional coverage.
+* 8 data bits
+* No parity bit
+* 1 stop bit
+* LSB-first transmission
+* Active-LOW start bit
+* HIGH stop bit
+
+The design uses a finite state machine (FSM) and a configurable clock-cycle counter to receive and sample UART data at the appropriate time.
+
+The verification environment was developed and executed using **Verilator on Ubuntu/Linux**.
+
+---
 
 ## Design Features
 
-* 8-bit UART data reception.
-* FSM-based receiver control.
-* Parameterized baud-rate timing using configurable clock-cycle counting.
-* Serial-to-parallel data conversion.
-* Start-bit and stop-bit handling.
-* Reset support.
-* Detection and handling of invalid reception conditions, where implemented.
+* 8-bit UART receiver
+* FSM-based receiver control
+* Parameterized baud-rate timing
+* Configurable `CLKS_PER_BIT` parameter
+* Start-bit validation
+* LSB-first data reception
+* Stop-bit validation
+* `rx_valid` pulse after successful frame reception
+* `framing_error` indication for an invalid stop bit
+* Safe recovery to the idle state
+* Support for consecutive UART frames
+
+---
+
+## UART Frame Format
+
+The receiver supports the following UART frame format:
+
+```text
+Idle   Start   D0   D1   D2   D3   D4   D5   D6   D7   Stop   Idle
+  1      0     LSB                    Data Bits                 1
+```
+
+Each frame contains:
+
+```text
+1 Start Bit + 8 Data Bits + 1 Stop Bit
+```
+
+The data is transmitted **least-significant bit first**.
+
+---
+
+## Receiver FSM
+
+The RTL receiver uses the following states:
+
+| State           | Description                                               |
+| --------------- | --------------------------------------------------------- |
+| `STATE_IDLE`    | Waits for the UART RX line to go LOW                      |
+| `STATE_START`   | Validates the start bit near the middle of the bit period |
+| `STATE_DATA`    | Samples the eight data bits                               |
+| `STATE_STOP`    | Checks whether the stop bit is HIGH                       |
+| `STATE_CLEANUP` | Clears status signals and returns to idle                 |
+
+### Output Signals
+
+| Signal          | Description                                        |
+| --------------- | -------------------------------------------------- |
+| `rx`            | Serial UART input                                  |
+| `rx_data[7:0]`  | Received 8-bit data                                |
+| `rx_valid`      | Indicates successful reception of a complete frame |
+| `framing_error` | Indicates that the received stop bit was LOW       |
+| `clk`           | System clock                                       |
+| `rst`           | Active-HIGH reset                                  |
+
+---
 
 ## Verification Environment
 
-The testbench includes:
+The project uses a modular, self-checking SystemVerilog testbench.
 
-* **Driver:** Generates UART serial stimulus.
-* **Monitor:** Observes and captures receiver activity.
-* **Scoreboard:** Compares expected data against received data.
-* **Assertions:** Checks protocol and design properties.
-* **Functional coverage:** Measures verification of important scenarios.
-* **Testbench top:** Coordinates the verification components and simulation.
+### Verification Components
 
-## Repository Structure
+| File                 | Responsibility                                                    |
+| -------------------- | ----------------------------------------------------------------- |
+| `uart_driver.sv`     | Generates UART stimulus and transmits test frames                 |
+| `uart_monitor.sv`    | Observes DUT outputs and records received transactions            |
+| `uart_scoreboard.sv` | Compares expected and actual received data                        |
+| `uart_coverage.sv`   | Tracks executed verification scenarios                            |
+| `uart_assertions.sv` | Checks important signal behavior                                  |
+| `uart_rx_tb.sv`      | Top-level testbench that coordinates the verification environment |
+
+The testbench includes directed tests, randomized transactions, negative tests, and corner-case scenarios.
+
+---
+
+## Test Scenarios
+
+The following scenarios are included in the verification environment:
+
+* Reset behavior
+* Directed UART data-pattern tests
+* Randomized 8-bit UART transactions
+* Invalid stop-bit test
+* False start-bit test
+* Back-to-back UART frame test
+* Scoreboard-based data comparison
+* Functional coverage tracking
+* Assertion checks for important DUT behavior
+
+### Negative Tests
+
+#### Invalid Stop-Bit Test
+
+A complete UART frame is transmitted with the stop bit driven LOW instead of HIGH.
+
+Expected behavior:
 
 ```text
-uart-receiver-rtl-verification/
+rx_valid      = 0
+framing_error = 1
+```
+
+#### False Start-Bit Test
+
+A short LOW pulse is applied to the RX line to simulate a false start condition.
+
+Expected behavior:
+
+```text
+The receiver rejects the false start and does not generate rx_valid.
+```
+
+#### Back-to-Back Frame Test
+
+Two UART frames are transmitted consecutively without an additional idle gap.
+
+Expected behavior:
+
+```text
+Both frames are received correctly.
+```
+
+---
+
+## Project Structure
+
+```text
+uart_receiver/
+├── README.md
+├── .gitignore
 │
 ├── rtl/
 │   └── uart_rx.v
@@ -42,81 +162,142 @@ uart-receiver-rtl-verification/
 │   ├── uart_driver.sv
 │   ├── uart_monitor.sv
 │   ├── uart_scoreboard.sv
-│   ├── uart_assertions.sv
-│   └── uart_coverage.sv
+│   ├── uart_coverage.sv
+│   └── uart_assertions.sv
 │
-├── UART/
-├── uart_if.sv
-├── README.md
-└── .gitignore
+├── sim/
+│   └── obj_dir/
+│
+├── waves/
+│   └── dump.vcd
+│
+└── docs/
 ```
 
-## UART Frame Format
+The `sim/obj_dir/` directory contains generated Verilator build files and should not be committed to GitHub.
 
-The receiver is intended to process a standard UART frame consisting of:
+---
+
+## Tools and Technologies
+
+* Verilog
+* SystemVerilog
+* Finite State Machines
+* RTL Design
+* Functional Verification
+* Verilator
+* GTKWave
+* Ubuntu/Linux
+* Git and GitHub
+
+---
+
+## Simulation Configuration
+
+The current testbench uses:
 
 ```text
-Idle | Start | Data[0] ... Data[7] | Stop
-  1  |   0   |     8 data bits     |  1
+CLKS_PER_BIT  = 217
+CLOCK_PERIOD  = 40 ns
 ```
 
-The exact supported configuration should be confirmed from the RTL.
+Therefore, the simulated UART bit period is:
 
-## Verification Strategy
+```text
+217 × 40 ns = 8680 ns
+```
 
-The testbench is designed to verify:
+The UART timing is controlled using simulation delays in the testbench driver.
 
-1. Correct reception of valid UART frames.
-2. Correct serial-to-parallel data conversion.
-3. Start-bit detection.
-4. Baud-rate timing behavior.
-5. Reset behavior.
-6. Back-to-back frame reception.
-7. Protocol corner cases.
-8. Assertion and functional coverage results.
+---
 
-## Simulation
+## Compilation Using Verilator
 
-### Prerequisites
-
-* Verilog/SystemVerilog simulator.
-* [Icarus Verilog](https://steveicarus.github.io/iverilog/) or [Verilator](https://verilator.org/guide/latest/).
-
-### Running the Simulation
-
-The exact compilation and simulation commands depend on the simulator and testbench top module.
-
-Example command structure:
+Run the following commands from the project root:
 
 ```bash
-iverilog -g2012 -o sim.out \
-  rtl/uart_rx.v \
-  uart_if.sv \
-  tb/*.sv
+rm -rf sim/obj_dir
+mkdir -p sim/obj_dir
 
-vvp sim.out
+verilator --binary -j 0 -Wall \
+rtl/uart_rx.v \
+tb/uart_driver.sv \
+tb/uart_monitor.sv \
+tb/uart_coverage.sv \
+tb/uart_assertions.sv \
+tb/uart_scoreboard.sv \
+tb/uart_rx_tb.sv \
+--top uart_rx_tb \
+--language 1800-2012 \
+--timing \
+-CFLAGS "-std=c++20" \
+--trace \
+-Mdir sim/obj_dir
 ```
 
-Update the file list and top-level module as required by the actual project.
+---
 
-## Results
+## Running the Simulation
 
-Add verified results here, including:
+After successful compilation, run:
 
-* Number of test cases executed.
-* Number of passed and failed checks.
-* Functional coverage percentage.
-* Assertion results.
-* Waveform evidence.
+```bash
+./sim/obj_dir/Vuart_rx_tb
+```
+
+The testbench prints the status of the executed tests, scoreboard comparisons, coverage information, and assertion results.
+
+---
+
+## Waveform Viewing
+
+The simulation can generate a VCD waveform file for signal-level analysis.
+
+To open the waveform using GTKWave:
+
+```bash
+gtkwave waves/dump.vcd
+```
+
+Important signals for analysis include:
+
+```text
+clk
+rst
+rx
+rx_data[7:0]
+rx_valid
+framing_error
+```
+
+---
+
+## Verification Result
+
+All implemented test scenarios passed successfully during Verilator simulation.
+
+The testbench successfully exercised normal UART reception, randomized data transfers, invalid frame conditions, false start detection, and back-to-back frame reception.
+
+---
 
 ## Future Improvements
 
-* Add constrained-random UART stimulus.
-* Expand protocol error injection.
-* Add a reference-model-based checker.
-* Automate simulation and regression testing.
-* Integrate linting and continuous integration.
+Possible future enhancements include:
+
+* Parameterized data width
+* Configurable parity support
+* Configurable number of stop bits
+* Oversampling-based UART reception
+* Additional baud-rate configurations
+* More extensive constrained-random testing
+* Automated coverage summary generation
+* Continuous integration using GitHub Actions
+* Improved waveform documentation for individual UART frames
+
+---
 
 ## Author
 
-Kaivalya Nibandhe
+**Kaivalya Nibandhe**
+
+This project was developed as part of practical learning in RTL design, digital design verification, and VLSI development workflows.

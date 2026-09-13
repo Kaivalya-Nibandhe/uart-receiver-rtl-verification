@@ -324,6 +324,13 @@ class uart_driver;
         $display("FALSE START-BIT TEST");
 
 
+        // Ensure the RX line begins in the idle state.
+        rx = 1'b1;
+
+        // Allow the idle state to settle before the pulse.
+        #(bit_period / 4);
+
+
         // Pull RX LOW to imitate a possible start bit.
         rx = 1'b0;
 

@@ -1,13 +1,21 @@
-# Simulation and generated files
+# Verilator-generated files
 obj_dir/
-sim/
-waves/
+sim/obj_dir/
+tb/sim/
+Vuart_rx_tb*
+*.mk
+*.cpp
+*.h
+*.d
+*.dat
 
-# Waveform files
+# Simulation outputs
 *.vcd
-*.fst
+*.log
+*.out
+*.tmp
 
-# Editor and OS files
+# Editor files
 .vscode/
-*.swp
-*~
+.idea/
+.DS_Store

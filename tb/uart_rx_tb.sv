@@ -23,7 +23,7 @@ module uart_rx_tb;
     logic       rx;
     logic [7:0] rx_data;
     logic       rx_valid;
-
+    logic framing_error;
 
     // ============================================================
     // VERIFICATION COMPONENT OBJECTS
@@ -57,7 +57,8 @@ module uart_rx_tb;
         .rst      (rst),
         .rx       (rx),
         .rx_valid (rx_valid),
-        .rx_data  (rx_data)
+        .rx_data  (rx_data),
+	.framing_error(framing_error)
     );
 
 
@@ -92,8 +93,8 @@ module uart_rx_tb;
     // ============================================================
 
     initial begin
-
-        $dumpfile("dump.vcd");
+        
+	$dumpfile("waves/dump.vcd");
         $dumpvars(0, uart_rx_tb);
 
     end
