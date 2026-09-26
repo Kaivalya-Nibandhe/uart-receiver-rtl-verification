@@ -1,8 +1,8 @@
-# Verilator-generated files
+# Verilator-generated build files
+sim/
+
+# Verilator generated binaries/build artifacts
 obj_dir/
-sim/obj_dir/
-tb/sim/
-Vuart_rx_tb*
 *.mk
 *.cpp
 *.h
