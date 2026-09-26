@@ -445,7 +445,7 @@ The waveform analysis was used to verify:
 - Framing-error assertion
 - Invalid stop-bit behavior
 
-### Normal UART Reception
+## Normal UART Reception
 
 A normal frame can be observed progressing through:
 
@@ -465,13 +465,13 @@ IDLE
 
 The received data is transferred into `rx_data`, followed by a `rx_valid` pulse after successful stop-bit validation.
 
-### Invalid Stop-Bit Reception
+## Invalid Stop-Bit Reception
 
 For the invalid-stop test:
 
 ```text
 DATA = 0xA5
-STOP  = 0
+STOP = 0
 ```
 
 the waveform shows:
@@ -483,19 +483,13 @@ rx_valid      = 0
 
 This confirms the RTL framing-error detection logic.
 
-### GTKWave Waveform
+## GTKWave Waveform
 
-A representative GTKWave screenshot can be added here:
+The following waveform shows UART RX activity, received data, `rx_valid`, `framing_error`, and FSM state transitions during simulation.
 
-```text
-docs/uvm_waveform.png
-```
-
-After adding the screenshot to the repository, it can be displayed using:
-
-```markdown
 ![UVM UART Waveform](docs/uvm_waveform.png)
-```
+
+The waveform demonstrates multiple UART transactions and provides visual confirmation of the receiver's RTL behavior during simulation.
 
 ---
 
@@ -651,16 +645,16 @@ uart_receiver/
 │   ├── uart_env.sv
 │   └── uart_test.sv
 │
+├── docs/
+│   └── uvm_waveform.png
+│
 ├── sim/
 │   ├── obj_dir/
 │   └── uvm_obj_dir/
 │
-├── waves/
-│   ├── dump.vcd
-│   └── uvm_dump.vcd
-│
-└── docs/
-    └── uvm_waveform.png
+└── waves/
+    ├── dump.vcd
+    └── uvm_dump.vcd
 ```
 
 > `sim/` and `waves/` contain generated simulation artifacts and are excluded from Git tracking.
@@ -716,4 +710,4 @@ Possible extensions to the project include:
 
 **Kaivalya Nibandhe**
 
-
+B.E. Electronics & Communication Engineering
