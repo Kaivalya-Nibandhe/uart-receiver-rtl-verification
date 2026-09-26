@@ -3,12 +3,10 @@
 // UART interface must be declared outside the module
 `include "uart_if.sv"
 
-
 module tb;
 
     import uvm_pkg::*;
     `include "uvm_macros.svh"
-
 
     // Include project UVM classes
     `include "uart_sequence_item.sv"
@@ -22,26 +20,20 @@ module tb;
     `include "uart_env.sv"
     `include "uart_test.sv"
 
-
     // UART interface instance
     uart_if uart_vif();
-
 
     // DUT
     uart_rx #(
         .CLKS_PER_BIT(217)
     ) dut (
-
         .clk           (uart_vif.clk),
         .rst           (uart_vif.rst),
         .rx            (uart_vif.rx),
-
         .rx_data       (uart_vif.rx_data),
         .rx_valid      (uart_vif.rx_valid),
         .framing_error (uart_vif.framing_error)
-
     );
-
 
     // Clock generation
     initial begin
@@ -55,7 +47,6 @@ module tb;
 
     end
 
-
     // Reset generation
     initial begin
 
@@ -68,6 +59,13 @@ module tb;
 
     end
 
+    // VCD waveform generation
+    initial begin
+
+        $dumpfile("waves/uvm_dump.vcd");
+        $dumpvars(0, tb);
+
+    end
 
     // Pass virtual interface to UVM
     initial begin
